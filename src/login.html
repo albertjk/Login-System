@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<!-- Author: Albert Jozsa-Kiraly -->
+	<meta charset="utf-8"/>
+	<title>Login For Existing Users</title>
+	<link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+<h2>Login For Existing Users</h2>
+<form id="loginForm" action="login.php" method="POST">
+	E-mail address:<br>
+	<input type="text" id="emailField" name="email"/>
+		<ul class="input-requirements">
+			<!-- Input requirements (bullet points) are shown when the user 
+			interacts with the text field, and are hidden when the user finished the interaction. -->
+			<li id="emailInValidFormat">Must be in the valid format</li>
+		
+			<!-- The text in this list item changes according to what is returned 
+			by the server (e-mail address already in use or not). -->
+			<li id="emailRegistered">Must be registered with us</li> 
+		</ul>		
+	Password:<br>
+	<input type="password" id="passwordField" name="password"/>
+		<ul class="input-requirements"> 
+			<li id="passwordLength">At least 8 characters long</li>
+			<li id="atLeastOneNumber">Contains at least one number</li>
+			<li id="atLeastOneLetter">Contains at least one letter</li> 
+			<li id="noSpecialCharacters">Does not contain any special characters</li>
+		</ul>	
+	<br>
+	<input type="button" id="loginButton" name="login" value="Login">
+</form>
+<br>
+<br>
+<br>
+<a href="home.html" style="margin-left: 6px;">Back to Home page</a> 
+<script>
+/* These event listeners are needed so that user input can be validated in real time. 
+After the user types something into a text field (releases the key), the input is validated.
+Also, a final validity check is done before the login button is clicked. */
+document.getElementById('emailField').addEventListener("keyup", validateEmail);
+document.getElementById('passwordField').addEventListener("keyup", validatePassword);
+document.getElementById('loginButton').addEventListener("click", checkFinalValidity);
+
+/* This function validates the format of the entered e-mail address using a regular expression, 
+and it also uses AJAX to find out whether the address is present in the database. */
+function validateEmail() {
+	
+	var email = document.getElementById('emailField').value;
+	
+	/* Check for the colour of the emailInValidFormat and emailRegistered bullet points here, because the 
+	validateEmail function is called repeatedly. If they are both coloured green, make the text box green.
+	Make the text box red otherwise. If we did not have this check, the text box could become red again 
+	even though the bullet points were green. */
+	if(document.getElementById('emailInValidFormat').style.color === "green" && document.getElementById('emailRegistered').style.color === "green") {
+		document.getElementById('emailField').style.borderColor = "green";
+	} else {
+		document.getElementById('emailField').style.borderColor = "red";
+	}
+	
+	/* If the entered e-mail address matches the regular expression,
+	the bullet point describing this requirement below the text field is coloured green. */
+	if(email.search(/^[a-zA-Z0-9_\.]+@[a-zA-Z0-9_]+\.[a-zA-Z0-9_\.]+$/g) > -1) {
+		document.getElementById('emailInValidFormat').style.color = "green";
+	}
+	else {
+		document.getElementById('emailInValidFormat').style.color = "red";
+	}
+	
+	// Use AJAX to check if the e-mail address is in the database
+	var xhttp = new XMLHttpRequest();
+	xhttp.open("GET", "validateEmail.php?email=" + email, true);
+	xhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+	xhttp.send();
+	
+	xhttp.onreadystatechange = function() {
+		if(this.readyState == 4 && this.status == 200) {
+			
+			// Display the response message
+			var responseMessage = this.responseText;
+			document.getElementById('emailRegistered').innerHTML = responseMessage;
+				
+			if(responseMessage === "The e-mail address is valid and can be used") {				
+					document.getElementById('emailRegistered').innerHTML = "Not yet registered on this site";
+					document.getElementById('emailRegistered').style.color = "red";
+			}
+			else if(responseMessage === "The e-mail address is not in the valid format") {			
+				document.getElementById('emailRegistered').innerHTML = "Invalid e-mail address";
+				document.getElementById('emailRegistered').style.color = "red";	
+			}
+			else  {			
+				document.getElementById('emailRegistered').innerHTML = "Recognized as registered on this site";
+				document.getElementById('emailRegistered').style.color = "green";	
+				
+				/* Check if the text field can be made green.
+				There could be a slight delay with the AJAX response, hence, the multiple such checks. */
+				if(document.getElementById('emailInValidFormat').style.color === "green" && document.getElementById('emailRegistered').style.color === "green") {
+					document.getElementById('emailField').style.borderColor = "green";
+				} else {
+					document.getElementById('emailField').style.borderColor = "red";
+				}
+			}				
+		};
+	}	
+	
+	if(document.getElementById('emailInValidFormat').style.color === "green" && document.getElementById('emailRegistered').style.color === "green") {
+		document.getElementById('emailField').style.borderColor = "green";
+	} else {
+		document.getElementById('emailField').style.borderColor = "red";
+	}
+}
+
+// This function validates the entered password
+function validatePassword() {
+
+	var password = document.getElementById('passwordField').value;
+	
+	// These booleans are needed to check if all criteria for a correct password is met
+	var atLeastEightCharactersLong = false;
+	var containsAtLeastOneNumber = false;
+	var containsAtLeastOneLetter = false;
+	var containsNoSpecialCharacters = false;
+	
+	if(password.length >= 8) {
+		atLeastEightCharactersLong = true;
+		document.getElementById('passwordLength').style.color = "green";
+	} 
+	else {
+		atLeastEightCharactersLong = false;
+		document.getElementById('passwordLength').style.color = "red";
+	}
+	
+	/* If the entered password contains at least one number, make the boolean true,
+	and the bullet point describing this requirement below the text field green. */
+	if(password.search(/[0-9]/g) > -1) {
+		containsAtLeastOneNumber = true;
+		document.getElementById('atLeastOneNumber').style.color = "green";
+	}
+	/* Otherwise, if the user has deleted all numbers from the password, make the boolean false,
+	and the bullet point below the text field red. */
+	else {
+		containsAtLeastOneNumber = false;
+		document.getElementById('atLeastOneNumber').style.color = "red";
+	}
+	
+	/* If the entered password contains at least one letter, make the boolean true,
+	and the bullet point describing this requirement below the text field green. */
+	if(password.search(/[a-zA-Z]/g) > -1) {
+		containsAtLeastOneLetter = true;
+		document.getElementById('atLeastOneLetter').style.color = "green";
+	}
+	/* Otherwise, if the user has deleted all letters from the password, make the boolean false,
+	and the bullet point below the text field red. */
+	else {
+		containsAtLeastOneLetter = false;
+		document.getElementById('atLeastOneLetter').style.color = "red";
+	}
+	
+	/* If the entered password does not contain any special characters e.g. @:%^&, then
+	make the boolean true, and the bullet point describing this requirement below the text field green. */
+	if(password.search(/(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}/g) > -1) {
+		containsNoSpecialCharacters = true;
+		document.getElementById('noSpecialCharacters').style.color = "green";
+	}
+	/* Otherwise, if the password contains special characters, then make the boolean false, and
+	the bullet point below the text field red. */
+	else {
+		containsNoSpecialCharacters = false;
+		document.getElementById('noSpecialCharacters').style.color = "red";
+	}
+	
+	/* If all criteria for a correct password is met (all booelans are true), 
+	make the border of the password text field green. */
+	if(atLeastEightCharactersLong && containsAtLeastOneNumber && containsAtLeastOneLetter && containsNoSpecialCharacters) {
+		document.getElementById('passwordField').style.borderColor = "green";
+	}
+	else {
+		document.getElementById('passwordField').style.borderColor = "red";
+	}
+}
+
+/* If the Login button is clicked, check if each bullet point describing an input requirement is green. 
+This indiciates that the values in the text fields above the bullet points were found to be valid. 
+Therefore, proceed with the login. Do not proceed if a bullet point is red as it indicates an error 
+in the input or if a text field is black (indicated as coloured empty) as the user has not entered anything yet. */
+function checkFinalValidity() {
+	
+	var errorMessage = "";
+	
+	if(document.getElementById('emailInValidFormat').style.color == "red") {
+		errorMessage = errorMessage.concat("\nThe e-mail address " + document.getElementById('emailInValidFormat').innerHTML.toLowerCase() + "!");
+	}
+	if(document.getElementById('emailField').style.borderColor == "") {
+		errorMessage = errorMessage.concat("\nPlease enter an e-mail address!");
+	} 
+	if(document.getElementById('emailRegistered').style.color == "red") {
+		errorMessage = errorMessage.concat("\n" + document.getElementById('emailRegistered').innerHTML + "!");
+	}
+	if(document.getElementById('passwordField').style.borderColor == "") {
+		errorMessage = errorMessage.concat("\nPlease enter a password!");
+	}	
+	if(document.getElementById('passwordLength').style.color == "red") {
+		errorMessage = errorMessage.concat("\nThe password " + document.getElementById('passwordLength').innerHTML.toLowerCase() + "!");
+	}
+	if(document.getElementById('atLeastOneNumber').style.color == "red") {
+		errorMessage = errorMessage.concat("\nThe password " + document.getElementById('atLeastOneNumber').innerHTML.toLowerCase() + "!");
+	}
+	if(document.getElementById('atLeastOneLetter').style.color == "red") {
+		errorMessage = errorMessage.concat("\nThe password " + document.getElementById('atLeastOneLetter').innerHTML.toLowerCase() + "!");
+	}
+	if(document.getElementById('noSpecialCharacters').style.color == "red") {
+		errorMessage = errorMessage.concat("\nThe password " + document.getElementById('noSpecialCharacters').innerHTML.toLowerCase() + "!");
+	}
+			
+	/* If there was some error message contained in the string on click to the Login button, display them to the user, 
+	and do not execute the PHP script in the login form. */
+	if(errorMessage != '') {
+		alert(errorMessage);
+		return false;
+	} 
+	// If everything was correct on click to the Login button, execute the PHP script in the login form.
+	else {
+		document.getElementById('loginForm').submit();
+	}	
+}
+</script>
+</body>
+</html>
